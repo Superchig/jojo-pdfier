@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+# For use with Hi Wa Mata Noboru (The Sun Will Rise Again)
+require "optparse"
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{$0} chapter.zip [chapter2.zip, chapter3.zip, ...] volume.pdf"
+
+  opts.on("-o", "--output-file OUTPUT", "Name of volume file.") { |o| options[:output_file] = o }
+  opts.on("-n", "--volume-number NUMBER", "Number of Jojo volume.") { |o| options[:volume_number] = o }
+end.parse!
+
+options[:output_file] ||= "jj_volume.pdf"
+options[:volume_number] ||= "x"
+
+pages_location = "#{Dir.home}/tmp/volume_#{options[:volume_number]}"
+
+ARGV.each do |zip|
+  `unzip -d #{pages_location} #{zip}`
+  puts "Unzipped #{zip}"
+end
+
+initial_dir = Dir.pwd
+Dir.chdir(pages_location)
+pages_ordered = `ls -v #{pages_location}`.split("\n").join(" ")
+
+puts "Beginning to convert Jojo volume."
+`convert #{pages_ordered} #{initial_dir}/#{options[:output_file]}`
+
+unless $? == 0
+  puts "Something went wrong with converting the Jojo pages to a pdf!"
+  return 1
+end
+
+puts "Black and white Jojo volume converted."
