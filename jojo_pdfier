@@ -1,93 +1,25 @@
 #!/usr/bin/env ruby
-require "optparse"
-require "fileutils"
-require "pathname"
+require_relative "lib/convert"
 
 options = {}
 OptionParser.new do |opts|
-  opts.banner = "Usage: #{$0} volume[.zip] volume.pdf"
+  opts.banner = "Usage: #{$0} -n NUMBER -o PART volume[.zip] volume.pdf"
 
   opts.on("-o", "--output-file OUTPUT", "Words to be appended to output file.") { |o| options[:output_file] = o }
   opts.on("-n", "--volume-number NUMBER", "Number of Jojo volume.") { |o| options[:volume_number] = o }
+  opts.on("-a", "--mass", "Mass conversion") { |o| options[:mass_conversion] = true }
+  opts.on("-m", "--max NUMBER", "Max number of volume to be converted with mass conversion") do |o|
+    options[:max] = o
+  end
 end.parse!
 
 # Default options
 options[:output_file] ||= "jj"
 options[:volume_number] ||= "x"
-TMP_IMGS_DIR = options[:tmp_imgs_dir] ||= "tmp_imgs"
-EXT = options[:ext] ||= "jpg"
 
-init_dir = Dir.pwd
-pages_location = "#{Dir.home}/tmp/volume_#{options[:volume_number]}"
-
-if ARGV.size == 1 && File.extname(ARGV[0]) == ".zip"
-  `unzip -d #{pages_location} "#{ARGV[0]}"`
-  puts "Unzipped #{ARGV[0]}"
-  Dir.chdir(pages_location)
-  puts Dir.pwd
-  FileUtils.remove_dir("__MACOSX") if Dir.exist?("__MACOSX")
-elsif ARGV.size == 1 && File.directory?(ARGV[0])
-  Dir.chdir(ARGV[0])
-else
-  $stderr.puts "Image jpgs must be in a directory or zip file."
+if ARGV.size == 1
+  convert(ARGV[0], options[:volume_number], options[:output_file])
+elsif options[:mass_conversion]
+  # Placeholder function
+  # mass_convert(ARGV[0], options[:output_file], options[:volume_number], options[:max])
 end
-
-extracted_dirs = Pathname.new(pages_location)
-                   .children.select { |c| c.directory? }
-                   .map { |p| p.to_s }
-until extracted_dirs.empty?
-  extracted_dirs.each do |dir_name|
-    Dir.foreach(dir_name) do |item|
-      next if item == "." || item == ".."
-
-      FileUtils.mv("#{dir_name}/#{item}", ".")
-    end
-    puts "Moved files out of #{dir_name}."
-
-    Dir.rmdir(dir_name)
-    puts "Deleted empty #{dir_name}."
-  end
-
-  extracted_dirs = Pathname.new(pages_location)
-                     .children.select { |c| c.directory? }
-                     .map { |p| p.to_s }
-end
-
-Dir.mkdir(TMP_IMGS_DIR) unless Dir.exist?(TMP_IMGS_DIR)
-
-imgs = `ls -v *.#{EXT}`.split("\n")
-formatted_img_num = 0
-imgs.each do |img|
-  img_dimensions = `identify #{img}`.split(" ")[2]
-
-  # Jojolion colored img_dimensions == "1773x1400" or "1774x1400"
-  # Steel Ball Run img_dimensions == "1520x1200"
-  if img_dimensions == "1520x1200"
-    `convert -crop 50%x100% +repage #{img} #{TMP_IMGS_DIR}/tmp_img.#{EXT}`
-
-    # Switches image order because manga is designed to be read right to left
-    File.rename("#{TMP_IMGS_DIR}/tmp_img-1.#{EXT}", "#{TMP_IMGS_DIR}/formatted_img-#{formatted_img_num}.#{EXT}")
-    File.rename("#{TMP_IMGS_DIR}/tmp_img-0.#{EXT}", "#{TMP_IMGS_DIR}/formatted_img-#{formatted_img_num += 1}.#{EXT}")
-  else
-    File.rename(img, "#{TMP_IMGS_DIR}/formatted_img-#{formatted_img_num}.#{EXT}")
-  end
-
-  formatted_img_num += 1
-
-
-  puts "Converted #{img}..."
-end
-
-formatted_imgs = Dir.glob("#{TMP_IMGS_DIR}/formatted_img-*")
-                   .sort_by { |f| f.split("-").last.to_i }.join(" ")
-# formatted_imgs = `ls -v #{TMP_IMGS_DIR}/formatted_img-*`.split("\n").join(" ")
-
-puts "Converting jojo volume..."
-`convert #{formatted_imgs} #{init_dir}/#{options[:output_file]}_volume_#{options[:volume_number]}.pdf`
-# puts `ls -v #{TMP_IMGS_DIR}`
-unless $? == 0
-  puts "Something went wrong with converting the formatted images to a pdf!"
-  return 1
-end
-
-puts "Jojo volume converted."
