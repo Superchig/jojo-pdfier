@@ -12,8 +12,8 @@ def convert(volume, number, part = "sbr")
   pages_location = "#{Dir.home}/tmp/volume_#{number}"
 
   if File.extname(volume) == ".zip"
-    `unzip -d #{pages_location} "#{ARGV[0]}"`
-    puts "Unzipped #{ARGV[0]}"
+    `unzip -d #{pages_location} "#{volume}"`
+    puts "Unzipped #{volume}"
     Dir.chdir(pages_location)
     puts Dir.pwd
     FileUtils.remove_dir("__MACOSX") if Dir.exist?("__MACOSX")

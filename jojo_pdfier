@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 require_relative "lib/convert"
+require_relative "lib/mass_convert"
 
 options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$0} -n NUMBER -o PART volume[.zip] volume.pdf"
 
-  opts.on("-o", "--output-file OUTPUT", "Words to be appended to output file.") { |o| options[:output_file] = o }
+  opts.on("-o", "--output-file OUTPUT", "Words to be prepended to output file.") { |o| options[:output_file] = o }
   opts.on("-n", "--volume-number NUMBER", "Number of Jojo volume.") { |o| options[:volume_number] = o }
   opts.on("-a", "--mass", "Mass conversion") { |o| options[:mass_conversion] = true }
   opts.on("-m", "--max NUMBER", "Max number of volume to be converted with mass conversion") do |o|
@@ -20,6 +21,6 @@ options[:volume_number] ||= "x"
 if ARGV.size == 1
   convert(ARGV[0], options[:volume_number], options[:output_file])
 elsif options[:mass_conversion]
-  # Placeholder function
-  # mass_convert(ARGV[0], options[:output_file], options[:volume_number], options[:max])
+  puts "Mass conversion selected."
+  mass_convert(options[:volume_number].to_i, options[:output_file], options[:max].to_i)
 end
